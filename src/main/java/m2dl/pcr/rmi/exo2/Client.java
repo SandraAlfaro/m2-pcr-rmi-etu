@@ -35,6 +35,18 @@ public class Client {
             displayPannel.add(displayMsgButton);
             displayPannel.add(displayMsg);
 
+            // Initialize displayMsg
+            try {
+                Registry registry = LocateRegistry.getRegistry(1099);
+                IMessageManager stub = (IMessageManager) registry.lookup("MsgManager");
+                for (String msg: stub.getAllMsg()) {
+                    displayMsg.append(msg+"\n");
+                }
+            } catch (Exception ex) {
+                System.err.println("Client exception: " + ex.toString());
+                ex.printStackTrace();
+            }
+
             // Global area
             JPanel ihm = new JPanel(new GridLayout(2,0));
             ihm.add(sendPannel);
@@ -55,8 +67,10 @@ public class Client {
                     stub.addMsg(msg);
                 }
                 if (ev.getSource() == displayMsgButton) {
+                    displayMsg.selectAll();
+                    displayMsg.replaceSelection("");
                     for (String msg: stub.getAllMsg()) {
-                        displayMsg.append(msg);
+                        displayMsg.append(msg+"\n");
                     }
                 }
             } catch (Exception ex) {
