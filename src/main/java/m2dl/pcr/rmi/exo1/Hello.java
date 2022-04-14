@@ -1,4 +1,4 @@
-package m2dl.pcr.rmi;
+package m2dl.pcr.rmi.exo1;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
