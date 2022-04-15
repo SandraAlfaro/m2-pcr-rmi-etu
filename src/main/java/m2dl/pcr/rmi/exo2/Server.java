@@ -34,8 +34,11 @@ public class Server implements IServer {
     }
 
     @Override
-    public void addMsg(String msg) {
+    public void addMsg(String msg) throws RemoteException {
         this.msgList.add(msg);
+        for(IClient client: clientsList.values()){
+            client.notifyClient();
+        }
     }
 
     @Override
