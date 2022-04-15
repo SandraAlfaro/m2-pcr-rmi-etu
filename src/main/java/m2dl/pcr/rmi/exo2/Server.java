@@ -8,23 +8,26 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 public class Server implements IServer {
+    // 1server/room
 
+    private int room;
     private List<String> msgList;
     private Map<UUID, IClient> clientsList;
 
-    public Server() {
+    public Server(int room) {
         this.msgList = new ArrayList<>();
         this.clientsList = new HashMap<>();
+        this.room = room;
     }
 
     public static void main(String args[]) {
         try {
-            Server obj = new Server();
+            Server obj = new Server(2);
             IServer stub = (IServer) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.createRegistry(1099);
-            registry.bind("Server", stub);
+            registry.bind(String.valueOf(2), stub);
 
             System.err.println("Server ready");
         } catch (Exception e) {

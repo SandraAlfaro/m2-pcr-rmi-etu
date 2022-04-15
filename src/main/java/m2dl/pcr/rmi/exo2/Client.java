@@ -2,8 +2,7 @@ package m2dl.pcr.rmi.exo2;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -14,13 +13,17 @@ import java.util.UUID;
 public class Client implements IClient {
 
     private UUID uuid;
+    private static IServer server;
     private IHM ihm;
-    private IServer server;
 
     private Client(UUID uuid, IServer server, IHM ihm) {
         this.uuid = uuid;
         this.server = server;
         this.ihm = ihm;
+    }
+
+    public UUID getUuid() {
+        return uuid;
     }
 
     @Override
@@ -30,38 +33,36 @@ public class Client implements IClient {
 
     public static void main(String[] args) {
         IHM ihm = new IHM();
-        UUID uuid = UUID.randomUUID();
-
-        // Initialize list of existant msg
-        try {
-            Registry registry = LocateRegistry.getRegistry(1099);
-            IServer server = (IServer) registry.lookup("Server");
-
-            IClient client = new Client(uuid, server, ihm);
-
-            IClient clientStub = (IClient) UnicastRemoteObject.exportObject(client,0);
-            registry.bind(uuid.toString(),clientStub);
-
-            server.connect(uuid);
-            ihm.setVisible(true);
-
-        } catch (Exception ex) {
-            System.err.println("Client exception: " + ex.toString());
-            ex.printStackTrace();
-        }
+        ihm.initIHM();
+        ihm.setVisible(true);
     }
 
-    private static class IHM extends JFrame implements ActionListener {
-        private JButton sendMsgButton;
-        private JTextField inputMsg;
-        private JTextArea displayMsg;
+    private static class IHM extends JFrame implements ActionListener, WindowListener {
 
-        public IHM() {
+        private static JButton sendMsgButton;
+        private static JTextField inputMsg;
+        private static JTextArea displayMsg;
+        private static JTextField inputRoom;
+        private static JButton connectButton;
+
+        private IServer server;
+        private UUID clientID;
+
+        public IHM() {}
+
+        public void initIHM() {
             // Send Message area
             sendMsgButton = new JButton("Send Message");//creating instance of JButton
             sendMsgButton.addActionListener(this);
+            sendMsgButton.setEnabled(false);
             inputMsg = new JTextField("Set message here !");
-            JPanel sendPannel = new JPanel(new GridLayout(0,2));
+            inputMsg.setEnabled(false);
+            inputRoom = new JTextField("2");
+            connectButton = new JButton("Connect");
+            connectButton.addActionListener(this);
+            JPanel sendPannel = new JPanel(new GridLayout(2,4));
+            sendPannel.add(inputRoom);
+            sendPannel.add(connectButton);
             sendPannel.add(inputMsg);
             sendPannel.add(sendMsgButton);
 
@@ -76,16 +77,40 @@ public class Client implements IClient {
             this.add(ihm);// set panel for layout
             this.setSize(400, 500);//400 width and 500 height
             this.setVisible(false);//making the frame visible
+            this.addWindowListener(this);
         }
 
-        public void actionPerformed(ActionEvent ev) {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (e.getSource() == sendMsgButton){
+                String msg = inputMsg.getText();
+                try {
+                    this.server.addMsg(msg);
+                } catch (RemoteException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            if (e.getSource() == connectButton){
+                connectToRoom();
+            }
+        }
+
+        public void connectToRoom(){
+            inputMsg.setEnabled(true);
+            sendMsgButton.setEnabled(true);
+
+            clientID = UUID.randomUUID();
             try {
                 Registry registry = LocateRegistry.getRegistry(1099);
-                IServer stub = (IServer) registry.lookup("Server");
-                if (ev.getSource() == sendMsgButton) {
-                    String msg = inputMsg.getText();
-                    stub.addMsg(msg);
-                }
+                this.server = (IServer) registry.lookup(inputRoom.getText());
+
+                IClient client = new Client(clientID, this.server,this);
+
+                IClient clientStub = (IClient) UnicastRemoteObject.exportObject(client,0);
+                registry.bind(clientID.toString(),clientStub);
+
+                this.server.connect(clientID);
+
             } catch (Exception ex) {
                 System.err.println("Client exception: " + ex.toString());
                 ex.printStackTrace();
@@ -99,6 +124,45 @@ public class Client implements IClient {
                 displayMsg.append(msg+"\n");
             }
         }
-    }
 
+        @Override
+        public void windowOpened(WindowEvent e) {
+
+        }
+
+        @Override
+        public void windowClosing(WindowEvent e) {
+            try {
+                this.server.disconect(clientID);
+            } catch (RemoteException ex) {
+                ex.printStackTrace();
+            }
+            System.exit(0);
+        }
+
+        @Override
+        public void windowClosed(WindowEvent e) {
+
+        }
+
+        @Override
+        public void windowIconified(WindowEvent e) {
+
+        }
+
+        @Override
+        public void windowDeiconified(WindowEvent e) {
+
+        }
+
+        @Override
+        public void windowActivated(WindowEvent e) {
+
+        }
+
+        @Override
+        public void windowDeactivated(WindowEvent e) {
+
+        }
+    }
 }
